@@ -12,7 +12,7 @@ import (
 
 // get all users
 func GetUsersController(c echo.Context) error {
-	var users []models.User
+	var users []models.Users
 
 	if err := config.DB.Find(&users).Error; err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
@@ -25,7 +25,7 @@ func GetUsersController(c echo.Context) error {
 
 // get user by id
 func GetUserController(c echo.Context) error {
-	var user []models.User
+	var user models.Users
 
 	id, err := strconv.Atoi(c.Param("id"))
 
@@ -39,13 +39,13 @@ func GetUserController(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"message": "success get user by id",
-		"user":    user,
+		"users":   user,
 	})
 }
 
 // create new user
 func CreateUserController(c echo.Context) error {
-	user := models.User{}
+	user := models.Users{}
 	c.Bind(&user)
 
 	if err := config.DB.Save(&user).Error; err != nil {
@@ -60,7 +60,7 @@ func CreateUserController(c echo.Context) error {
 
 // delete user by id
 func DeleteUserController(c echo.Context) error {
-	var user []models.User
+	var user models.Users
 
 	id, err := strconv.Atoi(c.Param("id"))
 
@@ -79,7 +79,7 @@ func DeleteUserController(c echo.Context) error {
 
 // update user by id
 func UpdateUserController(c echo.Context) error {
-	users := models.User{}
+	users := models.Users{}
 	c.Bind(&users)
 
 	id, err := strconv.Atoi(c.Param("id"))
@@ -88,7 +88,7 @@ func UpdateUserController(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	if err := config.DB.Model(models.User{}).Where("id = ?", id).Updates(users).Error; err != nil {
+	if err := config.DB.Model(models.Users{}).Where("id = ?", id).Updates(users).Error; err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
@@ -98,7 +98,7 @@ func UpdateUserController(c echo.Context) error {
 }
 
 func LoginUserController(c echo.Context) error {
-	user := models.User{}
+	user := models.Users{}
 	c.Bind(&user)
 
 	err := config.DB.Where("email = ? AND password = ?", user.Email, user.Password).First(&user).Error
