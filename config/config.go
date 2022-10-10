@@ -43,8 +43,7 @@ func InitDB() {
 
 // auto migrate with db
 func InitialMigrate() {
-	DB.AutoMigrate(&models.User{})
-	DB.AutoMigrate(&models.Book{})
+	DB.AutoMigrate(&models.Users{}, &models.Books{})
 }
 
 // Test Func

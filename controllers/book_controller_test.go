@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"bytes"
-	"database/sql/driver"
 	"encoding/json"
 	"learn_testing/config"
 	"learn_testing/models"
@@ -19,7 +18,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func TestGetUsersController(t *testing.T) {
+func TestGetBooksController(t *testing.T) {
 	dbFakeGorm, mocked, err := sqlmock.New()
 
 	assert.NoError(t, err)
@@ -31,27 +30,27 @@ func TestGetUsersController(t *testing.T) {
 
 	config.DB = dbGorm
 
-	row := sqlmock.NewRows([]string{"name", "email"}).
-		AddRow("ahmad naufal", "ahmad@gmail.com")
+	row := sqlmock.NewRows([]string{"title", "publisher"}).
+		AddRow("jalan jalan", "gramed")
 
-	mocked.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `users` WHERE `users`.`deleted_at` IS NULL")).
+	mocked.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `books` WHERE `books`.`deleted_at` IS NULL")).
 		WillReturnRows(row)
 
 	testCase := []struct {
 		Name             string
 		ExpectStatusCode int
 		Method           string
-		Body             models.Users
+		Body             models.Books
 		HasReturnBody    bool
-		ExpectBody       models.Users
+		ExpectBody       models.Books
 	}{
 		{
 			"success",
 			http.StatusOK,
 			"GET",
-			models.Users{},
+			models.Books{},
 			false,
-			models.Users{},
+			models.Books{},
 		},
 	}
 
@@ -63,7 +62,7 @@ func TestGetUsersController(t *testing.T) {
 			e := echo.New()
 			ctx := e.NewContext(r, w)
 
-			err := GetUsersController(ctx)
+			err := GetBooksController(ctx)
 			assert.NoError(t, err)
 
 			assert.Equal(t, val.ExpectStatusCode, w.Result().StatusCode)
@@ -73,13 +72,13 @@ func TestGetUsersController(t *testing.T) {
 				err := json.NewDecoder(w.Result().Body).Decode(&response)
 
 				assert.NoError(t, err)
-				assert.Equal(t, val.ExpectBody.Name, response["user"].(map[string]interface{})["name"])
+				assert.Equal(t, val.ExpectBody.Title, response["books"].(map[string]interface{})["title"])
 			}
 		})
 	}
 }
 
-func TestGetUserController(t *testing.T) {
+func TestGetBookController(t *testing.T) {
 	dbFakeGorm, mocked, err := sqlmock.New()
 
 	assert.NoError(t, err)
@@ -91,10 +90,10 @@ func TestGetUserController(t *testing.T) {
 
 	config.DB = dbGorm
 
-	row := sqlmock.NewRows([]string{"name", "email", "password"}).
-		AddRow("ahmad naufal", "ahmad@gmail.com", "alta@1234")
+	row := sqlmock.NewRows([]string{"title", "publisher", "author"}).
+		AddRow("jalan jalan", "gramed", "ahmad")
 
-	mocked.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `users` WHERE id = ? AND `users`.`deleted_at` IS NULL")).
+	mocked.ExpectQuery(regexp.QuoteMeta("SELECT * FROM `books` WHERE id = ? AND `books`.`deleted_at` IS NULL")).
 		WithArgs(1).
 		WillReturnRows(row)
 
@@ -102,18 +101,20 @@ func TestGetUserController(t *testing.T) {
 		Name             string
 		ExpectStatusCode int
 		Method           string
-		Body             models.Users
+		Body             models.Books
 		HasReturnBody    bool
-		ExpectBody       models.Users
+		ExpectBody       models.Books
 	}{
 		{
 			"success",
 			http.StatusOK,
 			"GET",
-			models.Users{},
+			models.Books{},
 			true,
-			models.Users{
-				Name: "ahmad naufal",
+			models.Books{
+				Title:     "jalan jalan",
+				Publisher: "gramed",
+				Author:    "ahmad",
 			},
 		},
 	}
@@ -130,7 +131,7 @@ func TestGetUserController(t *testing.T) {
 			ctx.SetParamNames("id")
 			ctx.SetParamValues("1")
 
-			err := GetUserController(ctx)
+			err := GetBookController(ctx)
 			assert.NoError(t, err)
 
 			assert.Equal(t, val.ExpectStatusCode, w.Result().StatusCode)
@@ -140,20 +141,13 @@ func TestGetUserController(t *testing.T) {
 				err := json.NewDecoder(w.Result().Body).Decode(&response)
 
 				assert.NoError(t, err)
-				assert.Equal(t, val.ExpectBody.Name, response["user"].(map[string]interface{})["name"])
+				assert.Equal(t, val.ExpectBody.Title, response["book"].(map[string]interface{})["title"])
 			}
 		})
 	}
 }
 
-type AnyTime struct{}
-
-func (a AnyTime) Match(v driver.Value) bool {
-	_, ok := v.(time.Time)
-	return ok
-}
-
-func TestCreateUserController(t *testing.T) {
+func TestCreateBookController(t *testing.T) {
 	dbFakeGorm, mocked, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 
 	assert.NoError(t, err)
@@ -166,8 +160,8 @@ func TestCreateUserController(t *testing.T) {
 	config.DB = dbGorm
 
 	mocked.ExpectBegin()
-	mocked.ExpectExec(regexp.QuoteMeta("INSERT INTO `users` (`created_at`,`updated_at`,`deleted_at`,`name`,`email`,`password`) VALUES (?,?,?,?,?,?)")).
-		WithArgs(AnyTime{}, AnyTime{}, "NULL", "ahmad naufal", "ahmad@gmail.com", "alta@1234").
+	mocked.ExpectExec(regexp.QuoteMeta("INSERT INTO `books` (`created_at`,`updated_at`,`deleted_at`,`title`,`publisher`,`author`) VALUES (?,?,?,?,?,?)")).
+		WithArgs(time.Now(), time.Now(), "NULL", "jalan jalan", "gramed", "ahmad").
 		WillReturnResult(sqlmock.NewErrorResult(nil))
 
 	mocked.ExpectCommit()
@@ -175,7 +169,7 @@ func TestCreateUserController(t *testing.T) {
 		Name             string
 		ExpectStatusCode int
 		Method           string
-		Body             models.Users
+		Body             models.Books
 		HasReturnBody    bool
 		ExpectBody       string
 	}{
@@ -183,13 +177,13 @@ func TestCreateUserController(t *testing.T) {
 			"success",
 			http.StatusOK,
 			"POST",
-			models.Users{
-				Name:     "ahmad naufal",
-				Email:    "ahmad@gmail.com",
-				Password: "alta@1234",
+			models.Books{
+				Title:     "jalan jalan",
+				Publisher: "gramed",
+				Author:    "ahmad",
 			},
 			true,
-			"success create new users",
+			"success create new books",
 		},
 	}
 
@@ -202,7 +196,7 @@ func TestCreateUserController(t *testing.T) {
 			e := echo.New()
 			ctx := e.NewContext(r, w)
 
-			err := CreateUserController(ctx)
+			err := CreateBookController(ctx)
 			assert.NoError(t, err)
 
 			assert.Equal(t, val.ExpectStatusCode, w.Result().StatusCode)
@@ -218,7 +212,7 @@ func TestCreateUserController(t *testing.T) {
 	}
 }
 
-func TestDeleteUserController(t *testing.T) {
+func TestDeleteBookController(t *testing.T) {
 	// mocking
 	dbFakeGorm, mocked, err := sqlmock.New()
 
@@ -233,7 +227,7 @@ func TestDeleteUserController(t *testing.T) {
 
 	mocked.ExpectBegin()
 
-	mocked.ExpectExec(regexp.QuoteMeta("DELETE FROM `users` WHERE id = ?")).
+	mocked.ExpectExec(regexp.QuoteMeta("DELETE FROM `books` WHERE id = ?")).
 		WithArgs(1).
 		WillReturnResult(sqlmock.NewResult(1, 0)).
 		WillReturnError(nil)
@@ -252,7 +246,7 @@ func TestDeleteUserController(t *testing.T) {
 			http.StatusOK,
 			"DELETE",
 			true,
-			"success deleted user by id",
+			"success deleted book by id",
 		},
 	}
 
@@ -268,7 +262,7 @@ func TestDeleteUserController(t *testing.T) {
 			ctx.SetParamNames("id")
 			ctx.SetParamValues("1")
 
-			err := DeleteUserController(ctx)
+			err := DeleteBookController(ctx)
 			assert.NoError(t, err)
 
 			assert.Equal(t, val.ExpectStatusCode, w.Result().StatusCode)
@@ -285,7 +279,7 @@ func TestDeleteUserController(t *testing.T) {
 	}
 }
 
-func TestUpdateUserController(t *testing.T) {
+func TestUpdateBookController(t *testing.T) {
 	dbFakeGorm, mocked, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 
 	assert.NoError(t, err)
@@ -298,8 +292,8 @@ func TestUpdateUserController(t *testing.T) {
 	config.DB = dbGorm
 
 	mocked.ExpectBegin()
-	mocked.ExpectExec(regexp.QuoteMeta("UPDATE `users` SET `updated_at`=? WHERE id = ? AND `users`.`deleted_at` IS NULL")).
-		WithArgs(AnyTime{}, 1).
+	mocked.ExpectExec(regexp.QuoteMeta("UPDATE `book` SET `updated_at`=? WHERE id = ? AND `books`.`deleted_at` IS NULL")).
+		WithArgs(time.Now(), 1).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	mocked.ExpectCommit()
@@ -307,7 +301,7 @@ func TestUpdateUserController(t *testing.T) {
 		Name             string
 		ExpectStatusCode int
 		Method           string
-		Body             models.Users
+		Body             models.Books
 		HasReturnBody    bool
 		ExpectBody       string
 	}{
@@ -315,13 +309,13 @@ func TestUpdateUserController(t *testing.T) {
 			"success",
 			http.StatusOK,
 			"POST",
-			models.Users{
-				Name:     "ahmad naufal",
-				Email:    "ahmad@gmail.com",
-				Password: "alta@1234",
+			models.Books{
+				Title:     "jalan jalan",
+				Publisher: "gramed",
+				Author:    "ahmad",
 			},
 			true,
-			"success updated user by id",
+			"success updated book by id",
 		},
 	}
 
@@ -337,7 +331,7 @@ func TestUpdateUserController(t *testing.T) {
 			ctx.SetParamNames("id")
 			ctx.SetParamValues("1")
 
-			err := UpdateUserController(ctx)
+			err := UpdateBookController(ctx)
 			assert.NoError(t, err)
 
 			assert.Equal(t, val.ExpectStatusCode, w.Result().StatusCode)

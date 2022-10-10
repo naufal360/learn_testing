@@ -39,7 +39,7 @@ func GetUserController(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"message": "success get user by id",
-		"users":   user,
+		"user":    user,
 	})
 }
 
@@ -48,13 +48,16 @@ func CreateUserController(c echo.Context) error {
 	user := models.Users{}
 	c.Bind(&user)
 
-	if err := config.DB.Save(&user).Error; err != nil {
+	if err := config.DB.Create(&models.Users{
+		Name:     user.Name,
+		Email:    user.Email,
+		Password: user.Password,
+	}).Error; err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"message": "success create new users",
-		"users":   user,
 	})
 }
 
@@ -68,7 +71,9 @@ func DeleteUserController(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	if err := config.DB.Where("id = ?", id).Find(&user).Delete(&user).Error; err != nil {
+	res := config.DB.Unscoped().Delete(&user, "id = ?", id)
+
+	if res.Error != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 

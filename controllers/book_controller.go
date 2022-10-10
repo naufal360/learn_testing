@@ -24,7 +24,7 @@ func GetBooksController(c echo.Context) error {
 
 // get book by id
 func GetBookController(c echo.Context) error {
-	var book []models.Books
+	var book models.Books
 
 	id, err := strconv.Atoi(c.Param("id"))
 
@@ -67,7 +67,9 @@ func DeleteBookController(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	if err := config.DB.Where("id = ?", id).Find(&book).Delete(&book).Error; err != nil {
+	res := config.DB.Unscoped().Delete(&book, "id = ?", id)
+
+	if res.Error != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
